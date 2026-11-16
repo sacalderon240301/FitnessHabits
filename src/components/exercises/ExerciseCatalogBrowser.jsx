@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search, Plus, ChevronRight } from 'lucide-react'
+import { Search, Plus, ChevronRight, Dumbbell } from 'lucide-react'
 import { muscleGroups, muscleGroupLabel, locationLabel } from '../../data/exerciseCatalog'
 
 export default function ExerciseCatalogBrowser({ catalog, onSelect, onCreateNew }) {
@@ -56,6 +56,11 @@ export default function ExerciseCatalogBrowser({ catalog, onSelect, onCreateNew 
         {filtered.length === 0 && <p style={styles.empty}>No hay ejercicios que coincidan.</p>}
         {filtered.map((ex) => (
           <button key={ex.id} style={styles.card} onClick={() => onSelect(ex)}>
+            {ex.photoUrl ? (
+              <img src={ex.photoUrl} alt="" style={styles.thumb} />
+            ) : (
+              <div style={styles.thumbPlaceholder}><Dumbbell size={16} color="var(--ink-muted)" /></div>
+            )}
             <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
               <span style={styles.meta}>{muscleGroupLabel(ex.muscleGroup)} · {locationLabel(ex.defaultLocation)}{ex.isCustom ? ' · tuyo' : ''}</span>
               <h3 style={styles.name}>{ex.name}</h3>
@@ -92,6 +97,11 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
     background: 'var(--surface)', border: '1px solid var(--border)',
     borderRadius: 12, padding: '12px 14px', cursor: 'pointer',
+  },
+  thumb: { width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 },
+  thumbPlaceholder: {
+    width: 40, height: 40, borderRadius: 8, background: 'var(--surface-raised)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   meta: { fontFamily: 'var(--font-mono)', fontSize: 10.5, textTransform: 'uppercase', color: 'var(--ink-muted)', letterSpacing: 0.4 },
   name: { fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, margin: '3px 0 0', color: 'var(--ink)' },

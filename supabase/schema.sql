@@ -123,6 +123,9 @@ create table if not exists custom_exercises (
   muscle_group text not null default 'otro',
   default_location text not null default 'casa',
   track_weight boolean not null default false,
+  -- foto de la máquina/ejercicio (Change Request #4), sube al bucket
+  -- "exercise-photos" — ver supabase/migrations/2026-11-16-exercise-photos.sql
+  photo_url text,
   created_at timestamptz not null default now()
 );
 

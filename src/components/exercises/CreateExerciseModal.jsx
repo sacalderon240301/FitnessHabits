@@ -1,5 +1,27 @@
 import { useState } from 'react'
+import { Camera, X } from 'lucide-react'
 import { muscleGroups, exerciseLocations } from '../../data/exerciseCatalog'
+import { supabase, isDemoMode } from '../../lib/supabase'
+
+async function uploadExercisePhoto(file) {
+  if (isDemoMode) {
+    // En modo demo no hay Storage real — guardamos la foto como data URL
+    // en localStorage (junto con el resto del ejercicio), así sobrevive
+    // a un refresh aunque no sea lo que se sube en producción.
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(file)
+    })
+  }
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+  const path = `custom/${Date.now()}-${safeName}`
+  const { error } = await supabase.storage.from('exercise-photos').upload(path, file)
+  if (error) return null
+  const { data } = supabase.storage.from('exercise-photos').getPublicUrl(path)
+  return data?.publicUrl ?? null
+}
 
 export default function CreateExerciseModal({ onClose, onSubmit }) {
   const [name, setName] = useState('')
@@ -8,9 +30,27 @@ export default function CreateExerciseModal({ onClose, onSubmit }) {
   const [trackWeight, setTrackWeight] = useState(false)
   const [defaultLocation, setDefaultLocation] = useState('casa')
   const [tip, setTip] = useState('')
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const [uploading, setUploading] = useState(false)
 
-  const handleSubmit = () => {
-    if (!name.trim()) return
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const removePhoto = () => {
+    setPhotoFile(null)
+    setPhotoPreview(null)
+  }
+
+  const handleSubmit = async () => {
+    if (!name.trim() || uploading) return
+    setUploading(true)
+    const photo_url = photoFile ? await uploadExercisePhoto(photoFile) : null
+    setUploading(false)
     onSubmit({
       name: name.trim(),
       muscle_group: muscleGroup,
@@ -18,6 +58,7 @@ export default function CreateExerciseModal({ onClose, onSubmit }) {
       track_weight: trackWeight,
       default_location: defaultLocation,
       tip: tip.trim() || null,
+      photo_url,
     })
     onClose()
   }
@@ -81,9 +122,27 @@ export default function CreateExerciseModal({ onClose, onSubmit }) {
         <label style={styles.label}>Nota de técnica (opcional)</label>
         <textarea value={tip} onChange={(e) => setTip(e.target.value)} style={styles.textarea} rows={2} placeholder="Tips para hacerlo bien" />
 
+        <label style={styles.label}>Foto de la máquina (opcional)</label>
+        {photoPreview ? (
+          <div style={styles.photoPreviewWrap}>
+            <img src={photoPreview} alt="" style={styles.photoPreview} />
+            <button onClick={removePhoto} style={styles.photoRemoveBtn} aria-label="Quitar foto">
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <label style={styles.photoAddBtn}>
+            <Camera size={16} />
+            Agregar foto
+            <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
+          </label>
+        )}
+
         <div style={styles.actions}>
           <button onClick={onClose} style={styles.cancelBtn}>Cancelar</button>
-          <button onClick={handleSubmit} style={styles.saveBtn}>Guardar</button>
+          <button onClick={handleSubmit} style={styles.saveBtn} disabled={uploading}>
+            {uploading ? 'Subiendo...' : 'Guardar'}
+          </button>
         </div>
       </div>
     </div>
@@ -105,6 +164,18 @@ const styles = {
   toggleBtnActive: { borderColor: 'var(--thread-gold)', color: 'var(--thread-gold)', background: 'var(--thread-gold-soft)' },
   checkboxRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', margin: '12px 0 4px', cursor: 'pointer' },
   textarea: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', color: 'var(--ink)', fontSize: 14, fontFamily: 'inherit', resize: 'none' },
+  photoAddBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: '11px', borderRadius: 10, border: '1px dashed var(--border)',
+    background: 'transparent', color: 'var(--ink-muted)', fontSize: 13, cursor: 'pointer',
+  },
+  photoPreviewWrap: { position: 'relative', width: 96, height: 96 },
+  photoPreview: { width: 96, height: 96, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--border)' },
+  photoRemoveBtn: {
+    position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%',
+    border: 'none', background: 'var(--slip-rust)', color: '#fff',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+  },
   actions: { display: 'flex', gap: 10, marginTop: 16 },
   cancelBtn: { flex: 1, padding: '12px', borderRadius: 10, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-muted)', fontSize: 14, cursor: 'pointer' },
   saveBtn: { flex: 2, padding: '12px', borderRadius: 10, border: 'none', background: 'var(--plan-brown)', color: 'var(--plan-tan)', fontSize: 14, fontWeight: 600, cursor: 'pointer' },

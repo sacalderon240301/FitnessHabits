@@ -35,6 +35,7 @@ export default function ExerciseDetailScreen({ exercise, logs, onBack, onAddLog,
       </div>
 
       <div style={{ padding: '4px 20px 90px', flex: 1, overflowY: 'auto' }}>
+        {exercise.photoUrl && <img src={exercise.photoUrl} alt="" style={styles.photo} />}
         {exercise.tip && <p style={styles.tip}>{exercise.tip}</p>}
 
         <button style={styles.logBtn} onClick={() => setLogging(true)}>
@@ -101,6 +102,7 @@ const styles = {
   },
   meta: { fontFamily: 'var(--font-mono)', fontSize: 10.5, textTransform: 'uppercase', color: 'var(--ink-muted)', letterSpacing: 0.4 },
   name: { fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, margin: '3px 0 0', color: 'var(--ink)' },
+  photo: { width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 14, margin: '8px 0 4px' },
   tip: { fontSize: 13, color: 'var(--ink-muted)', lineHeight: 1.5, margin: '4px 0 14px' },
   logBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%',

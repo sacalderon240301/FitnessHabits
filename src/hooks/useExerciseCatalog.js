@@ -11,6 +11,7 @@ function normalizeCustom(row) {
     tracking: row.tracking_type,
     trackWeight: row.track_weight,
     tip: row.tip ?? '',
+    photoUrl: row.photo_url ?? null,
     isCustom: true,
   }
 }
