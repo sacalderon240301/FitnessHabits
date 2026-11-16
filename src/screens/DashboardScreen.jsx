@@ -1,7 +1,9 @@
-import { Dumbbell, ListChecks, CalendarClock, Gauge, Droplet, Users, Scale, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { Dumbbell, ListChecks, CalendarClock, Gauge, Droplet, Users, Scale, ChevronRight, Check } from 'lucide-react'
 import { useExerciseLogs } from '../hooks/useExerciseLogs'
 import { useGoodHabitsList } from '../hooks/useGoodHabitsList'
 import { useAllGoodHabitEvents } from '../hooks/useAllGoodHabitEvents'
+import { useBodyWeight } from '../hooks/useBodyWeight'
 import { todayIso, toDayKey } from '../lib/date'
 
 const TODAY_LABEL = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -10,6 +12,10 @@ export default function DashboardScreen({ onNavigate }) {
   const { logs, loading: loadingLogs } = useExerciseLogs()
   const { habits, loading: loadingHabits } = useGoodHabitsList()
   const { events, loading: loadingEvents } = useAllGoodHabitEvents()
+  const { latest: latestWeight, loading: loadingWeight, logWeight } = useBodyWeight()
+
+  const [editingWeight, setEditingWeight] = useState(false)
+  const [weightInput, setWeightInput] = useState('')
 
   const today = todayIso()
   const exercisesToday = loadingLogs ? null : logs.filter((l) => l.session_date === today).length
@@ -17,6 +23,25 @@ export default function DashboardScreen({ onNavigate }) {
     ? null
     : habits.filter((h) => events.some((e) => e.habit_id === h.id && toDayKey(e.occurred_at) === today)).length
   const habitsTotal = habits.length
+
+  const openWeightEditor = () => {
+    setWeightInput(latestWeight ? String(latestWeight.weight_kg) : '')
+    setEditingWeight(true)
+  }
+
+  const saveWeight = () => {
+    const value = parseFloat(weightInput.replace(',', '.'))
+    if (!Number.isNaN(value) && value > 0) logWeight(value)
+    setEditingWeight(false)
+  }
+
+  const weightAgeLabel = (log) => {
+    if (!log) return null
+    const daysAgo = Math.round((new Date(today) - new Date(log.logged_date)) / 86_400_000)
+    if (daysAgo <= 0) return 'hoy'
+    if (daysAgo === 1) return 'ayer'
+    return `hace ${daysAgo} días`
+  }
 
   return (
     <div style={styles.wrap}>
@@ -56,6 +81,43 @@ export default function DashboardScreen({ onNavigate }) {
           <ChevronRight size={18} color="var(--ink-muted)" />
         </button>
 
+        {/* Peso */}
+        <div style={styles.card}>
+          <div style={styles.iconWrap}><Scale size={19} color="var(--ink-muted)" /></div>
+          <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+            <span style={styles.cardTitle}>Peso</span>
+            {!editingWeight ? (
+              <span style={styles.cardSubtitle}>
+                {loadingWeight
+                  ? 'Cargando...'
+                  : latestWeight
+                    ? `${latestWeight.weight_kg} kg · ${weightAgeLabel(latestWeight)}`
+                    : 'Sin registrar todavía'}
+              </span>
+            ) : (
+              <div style={styles.weightInputRow}>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  autoFocus
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && saveWeight()}
+                  placeholder="kg"
+                  style={styles.weightInput}
+                />
+                <button onClick={saveWeight} style={styles.weightSaveBtn} aria-label="Guardar peso">
+                  <Check size={15} />
+                </button>
+              </div>
+            )}
+          </div>
+          {!editingWeight && (
+            <button onClick={openWeightEditor} style={styles.updateLink}>Actualizar</button>
+          )}
+        </div>
+
         {/* Accesos secundarios reales */}
         <div style={styles.grid}>
           <button style={styles.tile} onClick={() => onNavigate('planificador')}>
@@ -68,7 +130,7 @@ export default function DashboardScreen({ onNavigate }) {
           </button>
         </div>
 
-        {/* Lo que viene (grupos, agua, peso) — honesto: todavía no existe */}
+        {/* Lo que viene (agua, grupos) — honesto: todavía no existe */}
         <div style={styles.comingSoonBox}>
           <span style={styles.comingSoonLabel}>Próximamente</span>
           <div style={styles.comingSoonGrid}>
@@ -79,10 +141,6 @@ export default function DashboardScreen({ onNavigate }) {
             <div style={styles.comingSoonTile}>
               <Users size={16} color="var(--focus-teal)" />
               <span style={styles.comingSoonText}>Grupos</span>
-            </div>
-            <div style={styles.comingSoonTile}>
-              <Scale size={16} color="var(--focus-teal)" />
-              <span style={styles.comingSoonText}>Peso</span>
             </div>
           </div>
         </div>
@@ -121,6 +179,19 @@ const styles = {
   },
   cardTitle: { display: 'block', fontSize: 14.5, fontWeight: 600, color: 'var(--ink)' },
   cardSubtitle: { display: 'block', fontSize: 12.5, color: 'var(--ink-muted)', marginTop: 2 },
+  updateLink: {
+    background: 'transparent', border: 'none', color: 'var(--thread-gold)',
+    fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+  },
+  weightInputRow: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 },
+  weightInput: {
+    width: 72, background: 'var(--surface)', border: '1px solid var(--border)',
+    borderRadius: 8, padding: '6px 8px', color: 'var(--ink)', fontSize: 13,
+  },
+  weightSaveBtn: {
+    width: 28, height: 28, borderRadius: 8, border: 'none', background: 'var(--thread-gold)',
+    color: '#221703', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+  },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10 },
   tile: {
     display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
