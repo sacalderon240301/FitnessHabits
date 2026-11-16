@@ -10,6 +10,10 @@
 -- para mostrar a cada integrante. El trigger llena profiles para cuentas
 -- nuevas; el insert de más abajo rellena las que ya existían.
 --
+-- Importante: todas las TABLAS se crean primero, y las POLÍTICAS después
+-- — algunas políticas de "profiles" hacen referencia a gym_group_members,
+-- así que esa tabla tiene que existir antes de crear esas políticas.
+--
 -- Corre este archivo completo de una sola vez en Supabase → SQL Editor.
 -- ============================================================
 
@@ -18,6 +22,39 @@ create table if not exists profiles (
   display_name text not null,
   created_at timestamptz not null default now()
 );
+
+create table if not exists gym_groups (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null default upper(substr(md5(random()::text), 1, 6)),
+  name text not null,
+  created_by uuid references auth.users(id) on delete set null default auth.uid(),
+  max_members int not null default 4,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists gym_group_members (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references gym_groups(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  joined_at timestamptz not null default now(),
+  unique (group_id, user_id)
+);
+
+create table if not exists gym_checkins (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  checkin_date date not null default current_date,
+  photo_url text,
+  drank_water boolean not null default false,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists gym_checkins_user_date_idx on gym_checkins(user_id, checkin_date);
+
+-- ============================================================
+-- Perfiles: políticas + trigger que llena el nombre al crear la cuenta.
+-- ============================================================
 
 alter table profiles enable row level security;
 
@@ -61,20 +98,13 @@ create trigger on_auth_user_created
   for each row execute function handle_new_user();
 
 -- ============================================================
-
-create table if not exists gym_groups (
-  id uuid primary key default gen_random_uuid(),
-  code text unique not null default upper(substr(md5(random()::text), 1, 6)),
-  name text not null,
-  created_by uuid references auth.users(id) on delete set null default auth.uid(),
-  max_members int not null default 4,
-  created_at timestamptz not null default now()
-);
+-- Grupos: cualquier usuario logueado puede BUSCAR uno por código para
+-- unirse (el código es la "contraseña" — igual que un invite link de
+-- Discord), pero solo quien lo creó puede editarlo/borrarlo.
+-- ============================================================
 
 alter table gym_groups enable row level security;
 
--- Cualquier usuario logueado puede BUSCAR un grupo por código para unirse
--- (el código es la "contraseña" — igual que un invite link de Discord).
 drop policy if exists "authenticated can read groups" on gym_groups;
 create policy "authenticated can read groups" on gym_groups
   for select to authenticated using (true);
@@ -88,14 +118,10 @@ create policy "authenticated can create group" on gym_groups
   for insert to authenticated with check (created_by = auth.uid());
 
 -- ============================================================
-
-create table if not exists gym_group_members (
-  id uuid primary key default gen_random_uuid(),
-  group_id uuid not null references gym_groups(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
-  joined_at timestamptz not null default now(),
-  unique (group_id, user_id)
-);
+-- Membresías: ves y te unes/sales tú mismo; el tope de integrantes se
+-- refuerza en el servidor con un trigger (no solo en la app) para que
+-- no se pueda esquivar con dos joins al mismo tiempo.
+-- ============================================================
 
 alter table gym_group_members enable row level security;
 
@@ -116,8 +142,6 @@ drop policy if exists "users leave groups themselves" on gym_group_members;
 create policy "users leave groups themselves" on gym_group_members
   for delete using (user_id = auth.uid());
 
--- Tope de integrantes por grupo, reforzado en el servidor (no solo en la
--- app) para que no se pueda esquivar con dos joins al mismo tiempo.
 create or replace function check_group_member_cap()
 returns trigger as $$
 declare
@@ -139,18 +163,9 @@ create trigger enforce_group_member_cap
   for each row execute function check_group_member_cap();
 
 -- ============================================================
-
-create table if not exists gym_checkins (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
-  checkin_date date not null default current_date,
-  photo_url text,
-  drank_water boolean not null default false,
-  note text,
-  created_at timestamptz not null default now()
-);
-
-create unique index if not exists gym_checkins_user_date_idx on gym_checkins(user_id, checkin_date);
+-- Check-ins: los tuyos los manejas tú; tus compañeros de grupo solo
+-- pueden VERLOS, nunca editarlos ni borrarlos.
+-- ============================================================
 
 alter table gym_checkins enable row level security;
 
