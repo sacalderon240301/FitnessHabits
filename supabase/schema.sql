@@ -392,3 +392,45 @@ create table if not exists gym_checkins (
 );
 
 create unique index if not exists gym_checkins_user_date_idx on gym_checkins(user_id, checkin_date);
+
+-- ============================================================
+-- Módulo: retos semanales + equivalencias votadas (Change Request #7).
+-- Autorreportado a propósito, igual que gym_checkins — ver
+-- supabase/migrations/2026-11-16-gym-challenges.sql para las políticas.
+-- ============================================================
+
+create table if not exists gym_challenges (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references gym_groups(id) on delete cascade,
+  title text not null,
+  base_label text not null default 'unidades',
+  target_value numeric not null default 0,
+  week_start date not null default date_trunc('week', current_date)::date,
+  created_by uuid references auth.users(id) on delete set null default auth.uid(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists gym_challenges_group_week_idx on gym_challenges(group_id, week_start);
+
+create table if not exists gym_equivalences (
+  id uuid primary key default gen_random_uuid(),
+  challenge_id uuid not null references gym_challenges(id) on delete cascade,
+  label text not null,
+  factor numeric not null default 1,
+  created_by uuid references auth.users(id) on delete set null default auth.uid(),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists gym_equivalence_votes (
+  equivalence_id uuid not null references gym_equivalences(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  primary key (equivalence_id, user_id)
+);
+
+create table if not exists gym_challenge_progress (
+  challenge_id uuid not null references gym_challenges(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  total_value numeric not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (challenge_id, user_id)
+);

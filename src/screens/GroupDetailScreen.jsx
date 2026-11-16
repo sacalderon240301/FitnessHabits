@@ -4,6 +4,7 @@ import { useGroupDetail } from '../hooks/useGroupDetail'
 import { useMyCheckin } from '../hooks/useMyCheckin'
 import { useGymGroups } from '../hooks/useGymGroups'
 import { todayIso, addDays } from '../lib/date'
+import ChallengesSection from '../components/groups/ChallengesSection'
 
 export default function GroupDetailScreen({ groupId, groups, onBack }) {
   const group = groups.find((g) => g.id === groupId)
@@ -151,6 +152,12 @@ export default function GroupDetailScreen({ groupId, groups, onBack }) {
                 </div>
               )}
             </div>
+
+            <ChallengesSection
+              groupId={groupId}
+              members={members}
+              myUserId={members.find((m) => m.isMe)?.userId}
+            />
 
             <button onClick={handleLeave} style={styles.leaveBtn}>
               <LogOut size={14} /> Salir del grupo

@@ -1,10 +1,13 @@
-import { useState } from 'react'
-import { Dumbbell, ListChecks, CalendarClock, Gauge, Droplet, Users, Scale, ChevronRight, Check } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Dumbbell, ListChecks, CalendarClock, Gauge, Droplet, Users, Scale, ChevronRight, Check, Trophy } from 'lucide-react'
 import { useExerciseLogs } from '../hooks/useExerciseLogs'
 import { useGoodHabitsList } from '../hooks/useGoodHabitsList'
 import { useAllGoodHabitEvents } from '../hooks/useAllGoodHabitEvents'
 import { useBodyWeight } from '../hooks/useBodyWeight'
 import { useWaterLog, DAILY_GOAL } from '../hooks/useWaterLog'
+import { useGymGroups } from '../hooks/useGymGroups'
+import { useGroupChallenges } from '../hooks/useGroupChallenges'
+import { supabase, isDemoMode } from '../lib/supabase'
 import { todayIso, toDayKey } from '../lib/date'
 
 const TODAY_LABEL = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -15,6 +18,15 @@ export default function DashboardScreen({ onNavigate }) {
   const { events, loading: loadingEvents } = useAllGoodHabitEvents()
   const { latest: latestWeight, loading: loadingWeight, logWeight } = useBodyWeight()
   const { todayGlasses, streak: waterStreak, loading: loadingWater } = useWaterLog()
+  const { groups, loading: loadingGroups } = useGymGroups()
+  const firstGroup = groups[0]
+  const { challenges, progress, loading: loadingChallenges } = useGroupChallenges(firstGroup?.id)
+
+  const [myUserId, setMyUserId] = useState(isDemoMode ? 'demo-me' : null)
+  useEffect(() => {
+    if (isDemoMode) return
+    supabase.auth.getUser().then(({ data }) => setMyUserId(data?.user?.id ?? null))
+  }, [])
 
   const [editingWeight, setEditingWeight] = useState(false)
   const [weightInput, setWeightInput] = useState('')
@@ -134,6 +146,39 @@ export default function DashboardScreen({ onNavigate }) {
           <ChevronRight size={18} color="var(--ink-muted)" />
         </button>
 
+        {/* Retos semanales del grupo (checklist) */}
+        {!loadingGroups && firstGroup && (
+          <div style={styles.card}>
+            <div style={styles.iconWrap}><Trophy size={19} color="var(--thread-gold)" /></div>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+              <span style={styles.cardTitle}>Retos de la semana</span>
+              {loadingChallenges ? (
+                <span style={styles.cardSubtitle}>Cargando...</span>
+              ) : challenges.length === 0 ? (
+                <span style={styles.cardSubtitle}>Sin retos esta semana en {firstGroup.name}</span>
+              ) : (
+                <div style={styles.challengeChecklist}>
+                  {challenges.map((c) => {
+                    const myValue = progress.find((p) => p.challenge_id === c.id && p.user_id === myUserId)?.total_value ?? 0
+                    const done = myValue >= c.target_value
+                    return (
+                      <div key={c.id} style={styles.challengeRow}>
+                        <div style={{ ...styles.miniCheck, background: done ? 'var(--thread-gold)' : 'transparent' }}>
+                          {done && <Check size={10} color="#221703" />}
+                        </div>
+                        <span style={styles.challengeRowText}>{c.title} · {myValue}/{c.target_value} {c.base_label}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <button onClick={() => onNavigate('grupos')} style={{ background: 'none', border: 'none', cursor: 'pointer' }} aria-label="Ver grupos">
+              <ChevronRight size={18} color="var(--ink-muted)" />
+            </button>
+          </div>
+        )}
+
         {/* Accesos secundarios reales */}
         <div style={styles.grid}>
           <button style={styles.tile} onClick={() => onNavigate('grupos')}>
@@ -197,6 +242,10 @@ const styles = {
     width: 28, height: 28, borderRadius: 8, border: 'none', background: 'var(--thread-gold)',
     color: '#221703', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
   },
+  challengeChecklist: { display: 'flex', flexDirection: 'column', gap: 5, marginTop: 3 },
+  challengeRow: { display: 'flex', alignItems: 'center', gap: 7 },
+  miniCheck: { width: 15, height: 15, borderRadius: 4, border: '1.4px solid var(--border)', flexShrink: 0 },
+  challengeRowText: { fontSize: 12, color: 'var(--ink-muted)' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 },
   tile: {
     display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
