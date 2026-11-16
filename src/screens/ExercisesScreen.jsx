@@ -107,6 +107,7 @@ export default function ExercisesScreen() {
           onUpdateLog={updateLog}
           onDeleteLog={deleteLog}
           onCreateRoutine={addRoutine}
+          onCreateExercise={addExercise}
           onClose={() => setActiveSession(undefined)}
         />
       )}

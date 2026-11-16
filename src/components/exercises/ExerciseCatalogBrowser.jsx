@@ -17,14 +17,21 @@ export default function ExerciseCatalogBrowser({ catalog, onSelect, onCreateNew 
 
   return (
     <div>
-      <div style={styles.searchWrap}>
-        <Search size={15} color="var(--ink-muted)" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar ejercicio..."
-          style={styles.searchInput}
-        />
+      <div style={styles.searchRow}>
+        <div style={styles.searchWrap}>
+          <Search size={15} color="var(--ink-muted)" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar ejercicio o máquina..."
+            style={styles.searchInput}
+          />
+        </div>
+        {onCreateNew && (
+          <button onClick={onCreateNew} style={styles.quickAddBtn} aria-label="Agregar ejercicio nuevo">
+            <Plus size={18} />
+          </button>
+        )}
       </div>
 
       <div style={styles.chipRow}>
@@ -57,21 +64,20 @@ export default function ExerciseCatalogBrowser({ catalog, onSelect, onCreateNew 
           </button>
         ))}
       </div>
-
-      {onCreateNew && (
-        <button style={styles.createBtn} onClick={onCreateNew}>
-          <Plus size={16} />
-          Agregar ejercicio
-        </button>
-      )}
     </div>
   )
 }
 
 const styles = {
+  searchRow: { display: 'flex', gap: 8, marginBottom: 10 },
   searchWrap: {
-    display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)',
-    border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', marginBottom: 10,
+    flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)',
+    border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px',
+  },
+  quickAddBtn: {
+    flexShrink: 0, width: 40, borderRadius: 10, border: 'none',
+    background: 'var(--thread-gold)', color: '#221703',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
   },
   searchInput: { flex: 1, background: 'transparent', border: 'none', color: 'var(--ink)', fontSize: 14 },
   chipRow: { display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 12 },
@@ -89,9 +95,4 @@ const styles = {
   },
   meta: { fontFamily: 'var(--font-mono)', fontSize: 10.5, textTransform: 'uppercase', color: 'var(--ink-muted)', letterSpacing: 0.4 },
   name: { fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, margin: '3px 0 0', color: 'var(--ink)' },
-  createBtn: {
-    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-    padding: '13px', borderRadius: 12, border: '1px dashed var(--border)',
-    background: 'transparent', color: 'var(--ink-muted)', fontSize: 14, cursor: 'pointer',
-  },
 }

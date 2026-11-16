@@ -2,15 +2,14 @@ import { useEffect, useState } from 'react'
 import { supabase, isDemoMode } from './lib/supabase'
 import AuthScreen from './screens/AuthScreen'
 import ResetPasswordScreen from './screens/ResetPasswordScreen'
-import OnboardingScreen from './screens/OnboardingScreen'
 import ManualScreen from './screens/ManualScreen'
+import DashboardScreen from './screens/DashboardScreen'
 import HabitosScreen from './screens/HabitosScreen'
 import EjercicioScreen from './screens/EjercicioScreen'
 import PlannerScreen from './screens/PlannerScreen'
 import KpisScreen from './screens/KpisScreen'
+import MasScreen from './screens/MasScreen'
 import TabBar from './components/TabBar'
-
-const ONBOARDING_KEY = 'habit-app-onboarding-seen'
 
 export default function App() {
   // undefined = todavía cargando la sesión, null = sin sesión, objeto = logueado.
@@ -28,29 +27,25 @@ export default function App() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem(ONBOARDING_KEY)
-  )
   const [showManual, setShowManual] = useState(false)
-  const [branch, setBranch] = useState('habitos')
+  // "Hoy" (dashboard) es la pantalla de entrada — ver Change Request #1.
+  const [branch, setBranch] = useState('dashboard')
   const [initialTabs, setInitialTabs] = useState({ habitos: 'malos', ejercicio: 'calendario' })
-  // key forces the branch screen to remount with the right initial sub-tab
-  // when coming from onboarding, without fighting internal tab state later.
+  // key fuerza que la pantalla de la rama se remonte con el sub-tab correcto
+  // cuando se navega desde un acceso directo (dashboard, Más), sin pelear
+  // con el estado interno de tab que ya tenía si solo cambiamos de rama.
   const [routeVersion, setRouteVersion] = useState(0)
 
-  const handleSelect = (branchId, tabId) => {
-    localStorage.setItem(ONBOARDING_KEY, '1')
+  const navigateTo = (branchId, tabId) => {
     if (tabId) setInitialTabs((prev) => ({ ...prev, [branchId]: tabId }))
     setBranch(branchId)
     setRouteVersion((v) => v + 1)
-    setShowOnboarding(false)
   }
 
-  const goHome = () => setShowOnboarding(true)
+  const goHome = () => setBranch('dashboard')
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    setShowOnboarding(true)
   }
 
   if (!isDemoMode && authEvent === 'PASSWORD_RECOVERY') {
@@ -69,20 +64,12 @@ export default function App() {
     return <ManualScreen onBack={() => setShowManual(false)} />
   }
 
-  if (showOnboarding) {
-    return (
-      <OnboardingScreen
-        onSelect={handleSelect}
-        userEmail={session?.user?.email}
-        onLogout={!isDemoMode ? handleLogout : undefined}
-        onOpenManual={() => setShowManual(true)}
-      />
-    )
-  }
-
   return (
     <>
       <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {branch === 'dashboard' && (
+          <DashboardScreen key={`dashboard-${routeVersion}`} onNavigate={navigateTo} />
+        )}
         {branch === 'habitos' && (
           <HabitosScreen key={`habitos-${routeVersion}`} initialTab={initialTabs.habitos} onGoHome={goHome} />
         )}
@@ -95,8 +82,17 @@ export default function App() {
         {branch === 'kpis' && (
           <KpisScreen key={`kpis-${routeVersion}`} onGoHome={goHome} />
         )}
+        {branch === 'mas' && (
+          <MasScreen
+            key={`mas-${routeVersion}`}
+            onNavigate={navigateTo}
+            userEmail={session?.user?.email}
+            onLogout={!isDemoMode ? handleLogout : undefined}
+            onOpenManual={() => setShowManual(true)}
+          />
+        )}
       </main>
-      <TabBar active={branch} onChange={setBranch} />
+      <TabBar active={branch === 'mas' ? 'mas' : branch} onChange={setBranch} />
     </>
   )
 }

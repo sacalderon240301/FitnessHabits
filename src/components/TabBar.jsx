@@ -1,10 +1,10 @@
-import { ListChecks, Dumbbell, CalendarClock, Gauge } from 'lucide-react'
+import { Home, Dumbbell, ListChecks, MoreHorizontal } from 'lucide-react'
 
 const TABS = [
+  { id: 'dashboard', label: 'Hoy', Icon: Home },
+  { id: 'ejercicio', label: 'Entrenar', Icon: Dumbbell },
   { id: 'habitos', label: 'Hábitos', Icon: ListChecks },
-  { id: 'ejercicio', label: 'Ejercicio', Icon: Dumbbell },
-  { id: 'planificador', label: 'Mi día', Icon: CalendarClock },
-  { id: 'kpis', label: 'KPIs', Icon: Gauge },
+  { id: 'mas', label: 'Más', Icon: MoreHorizontal },
 ]
 
 export default function TabBar({ active, onChange }) {

@@ -5,6 +5,7 @@ import { rowsFromSets, cleanSetRows } from '../../lib/setRows'
 import { exerciseLocations } from '../../data/exerciseCatalog'
 import SetsEditor from './SetsEditor'
 import ExerciseCatalogBrowser from './ExerciseCatalogBrowser'
+import CreateExerciseModal from './CreateExerciseModal'
 
 function ExerciseSessionCard({ exercise, rows, onChange, saved, onSave, onDelete }) {
   return (
@@ -33,7 +34,7 @@ function ExerciseSessionCard({ exercise, rows, onChange, saved, onSave, onDelete
  * ejercicio (de la rutina, más los que se agreguen sueltos). Cada ejercicio
  * se guarda de forma incremental — útil para ir marcando mientras entrenas.
  */
-export default function RoutineSessionModal({ routine, catalog, existingLogs = [], onAddLog, onUpdateLog, onDeleteLog, onCreateRoutine, onClose }) {
+export default function RoutineSessionModal({ routine, catalog, existingLogs = [], onAddLog, onUpdateLog, onDeleteLog, onCreateRoutine, onCreateExercise, onClose }) {
   const [sessionDate, setSessionDate] = useState(existingLogs[0]?.session_date ?? todayIso())
   const [location, setLocation] = useState(existingLogs[0]?.location ?? routine?.location ?? 'gimnasio')
 
@@ -59,6 +60,7 @@ export default function RoutineSessionModal({ routine, catalog, existingLogs = [
     return initial
   })
   const [picking, setPicking] = useState(false)
+  const [creatingExercise, setCreatingExercise] = useState(false)
   const [showSaveAsRoutine, setShowSaveAsRoutine] = useState(false)
   const [routineName, setRoutineName] = useState(routine?.name ?? '')
 
@@ -100,6 +102,13 @@ export default function RoutineSessionModal({ routine, catalog, existingLogs = [
     setPicking(false)
   }
 
+  const handleCreateExercise = (payload) => {
+    if (!onCreateExercise) return
+    onCreateExercise(payload).then((created) => {
+      if (created) addExtraExercise(created)
+    })
+  }
+
   const handleSaveAsRoutine = async () => {
     if (!routineName.trim() || exerciseIds.length === 0 || !onCreateRoutine) return
     await onCreateRoutine({ name: routineName.trim(), location, exercise_ids: exerciseIds })
@@ -113,9 +122,19 @@ export default function RoutineSessionModal({ routine, catalog, existingLogs = [
         <div style={styles.sheet} onClick={(e) => e.stopPropagation()}>
           <div style={styles.handle} />
           <h2 style={styles.title}>Agregar ejercicio</h2>
-          <ExerciseCatalogBrowser catalog={availableCatalog} onSelect={addExtraExercise} />
+          <ExerciseCatalogBrowser
+            catalog={availableCatalog}
+            onSelect={addExtraExercise}
+            onCreateNew={onCreateExercise ? () => setCreatingExercise(true) : undefined}
+          />
           <button onClick={() => setPicking(false)} style={styles.cancelBtn}>Volver</button>
         </div>
+        {creatingExercise && (
+          <CreateExerciseModal
+            onClose={() => { setCreatingExercise(false); setPicking(false) }}
+            onSubmit={handleCreateExercise}
+          />
+        )}
       </div>
     )
   }
