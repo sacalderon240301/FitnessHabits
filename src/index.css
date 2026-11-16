@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  /* --- color: "El Tejido" (the weave) --- */
+  --bg: #12161c;
+  --surface: #1b212b;
+  --surface-raised: #232b37;
+  --ink: #e7e9ed;
+  --ink-muted: #8891a0;
+  --thread-gold: #e3a63e;
+  --thread-gold-soft: rgba(227, 166, 62, 0.16);
+  --thread-dim: #3a4250;
+  --slip-rust: #a9573f;
+  --slip-rust-soft: rgba(169, 87, 63, 0.14);
+  --focus-teal: #4fa69c;
+  --focus-teal-soft: rgba(79, 166, 156, 0.14);
+  --border: #2a3240;
+
+  /* --- categorías del planificador de día --- */
+  --plan-blue: #6c8ebf;
+  --plan-orange: #c9793f;
+  --plan-purple: #9b7fc7;
+  --plan-green: #5fa87a;
+  --plan-pink: #c77fa3;
+  --plan-brown: #a8825c;
+  --plan-tan: #d9b382;
+
+  /* --- type --- */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Los navegadores NO heredan el color de texto en elementos de formulario
+   por defecto (button, input, textarea, select tienen su propio color de
+   UA, típicamente oscuro). Sin esto, cualquier texto dentro de un <button>
+   se ve con el color por defecto del sistema en vez del --ink de la app —
+   este era el bug de "letras negras casi invisibles" en Hábitos y Gym. */
+button, input, textarea, select {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
