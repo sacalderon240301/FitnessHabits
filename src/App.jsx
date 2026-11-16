@@ -8,6 +8,7 @@ import HabitosScreen from './screens/HabitosScreen'
 import EjercicioScreen from './screens/EjercicioScreen'
 import PlannerScreen from './screens/PlannerScreen'
 import KpisScreen from './screens/KpisScreen'
+import AguaScreen from './screens/AguaScreen'
 import MasScreen from './screens/MasScreen'
 import TabBar from './components/TabBar'
 
@@ -81,6 +82,9 @@ export default function App() {
         )}
         {branch === 'kpis' && (
           <KpisScreen key={`kpis-${routeVersion}`} onGoHome={goHome} />
+        )}
+        {branch === 'agua' && (
+          <AguaScreen key={`agua-${routeVersion}`} onGoHome={goHome} />
         )}
         {branch === 'mas' && (
           <MasScreen

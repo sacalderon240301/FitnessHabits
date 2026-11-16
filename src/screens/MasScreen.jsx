@@ -1,8 +1,9 @@
-import { CalendarClock, Gauge, HelpCircle, LogOut } from 'lucide-react'
+import { CalendarClock, Gauge, Droplet, HelpCircle, LogOut } from 'lucide-react'
 
 const ITEMS = [
   { id: 'planificador', Icon: CalendarClock, title: 'Mi día', description: 'Planea mañana en bloques de tiempo — actividad definida o libre.' },
   { id: 'kpis', Icon: Gauge, title: 'KPIs', description: 'Consistencia física, balance de hábitos y patrones entre ejercicio y recaídas.' },
+  { id: 'agua', Icon: Droplet, title: 'Agua', description: 'Tus vasos de hoy, racha, y el resumen de la semana.' },
 ]
 
 export default function MasScreen({ onNavigate, userEmail, onLogout, onOpenManual }) {

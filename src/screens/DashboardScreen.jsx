@@ -4,6 +4,7 @@ import { useExerciseLogs } from '../hooks/useExerciseLogs'
 import { useGoodHabitsList } from '../hooks/useGoodHabitsList'
 import { useAllGoodHabitEvents } from '../hooks/useAllGoodHabitEvents'
 import { useBodyWeight } from '../hooks/useBodyWeight'
+import { useWaterLog, DAILY_GOAL } from '../hooks/useWaterLog'
 import { todayIso, toDayKey } from '../lib/date'
 
 const TODAY_LABEL = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -13,6 +14,7 @@ export default function DashboardScreen({ onNavigate }) {
   const { habits, loading: loadingHabits } = useGoodHabitsList()
   const { events, loading: loadingEvents } = useAllGoodHabitEvents()
   const { latest: latestWeight, loading: loadingWeight, logWeight } = useBodyWeight()
+  const { todayGlasses, streak: waterStreak, loading: loadingWater } = useWaterLog()
 
   const [editingWeight, setEditingWeight] = useState(false)
   const [weightInput, setWeightInput] = useState('')
@@ -118,6 +120,20 @@ export default function DashboardScreen({ onNavigate }) {
           )}
         </div>
 
+        {/* Agua */}
+        <button style={styles.card} onClick={() => onNavigate('agua')}>
+          <div style={styles.iconWrap}><Droplet size={19} color="var(--focus-teal)" /></div>
+          <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+            <span style={styles.cardTitle}>Agua</span>
+            <span style={styles.cardSubtitle}>
+              {loadingWater
+                ? 'Cargando...'
+                : `${todayGlasses} / ${DAILY_GOAL} vasos hoy · racha de ${waterStreak} día${waterStreak === 1 ? '' : 's'}`}
+            </span>
+          </div>
+          <ChevronRight size={18} color="var(--ink-muted)" />
+        </button>
+
         {/* Accesos secundarios reales */}
         <div style={styles.grid}>
           <button style={styles.tile} onClick={() => onNavigate('planificador')}>
@@ -130,14 +146,10 @@ export default function DashboardScreen({ onNavigate }) {
           </button>
         </div>
 
-        {/* Lo que viene (agua, grupos) — honesto: todavía no existe */}
+        {/* Lo que viene (grupos) — honesto: todavía no existe */}
         <div style={styles.comingSoonBox}>
           <span style={styles.comingSoonLabel}>Próximamente</span>
           <div style={styles.comingSoonGrid}>
-            <div style={styles.comingSoonTile}>
-              <Droplet size={16} color="var(--focus-teal)" />
-              <span style={styles.comingSoonText}>Agua</span>
-            </div>
             <div style={styles.comingSoonTile}>
               <Users size={16} color="var(--focus-teal)" />
               <span style={styles.comingSoonText}>Grupos</span>
