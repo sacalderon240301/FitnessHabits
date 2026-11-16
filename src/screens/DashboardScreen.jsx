@@ -136,6 +136,10 @@ export default function DashboardScreen({ onNavigate }) {
 
         {/* Accesos secundarios reales */}
         <div style={styles.grid}>
+          <button style={styles.tile} onClick={() => onNavigate('grupos')}>
+            <Users size={18} color="var(--ink-muted)" />
+            <span style={styles.tileLabel}>Grupos</span>
+          </button>
           <button style={styles.tile} onClick={() => onNavigate('planificador')}>
             <CalendarClock size={18} color="var(--ink-muted)" />
             <span style={styles.tileLabel}>Mi día</span>
@@ -144,17 +148,6 @@ export default function DashboardScreen({ onNavigate }) {
             <Gauge size={18} color="var(--ink-muted)" />
             <span style={styles.tileLabel}>KPIs</span>
           </button>
-        </div>
-
-        {/* Lo que viene (grupos) — honesto: todavía no existe */}
-        <div style={styles.comingSoonBox}>
-          <span style={styles.comingSoonLabel}>Próximamente</span>
-          <div style={styles.comingSoonGrid}>
-            <div style={styles.comingSoonTile}>
-              <Users size={16} color="var(--focus-teal)" />
-              <span style={styles.comingSoonText}>Grupos</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -204,22 +197,10 @@ const styles = {
     width: 28, height: 28, borderRadius: 8, border: 'none', background: 'var(--thread-gold)',
     color: '#221703', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
   },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10 },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10 },
   tile: {
     display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
     background: 'var(--surface-raised)', border: 'none', borderRadius: 14, padding: 13, cursor: 'pointer',
   },
   tileLabel: { fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' },
-  comingSoonBox: {
-    border: '1px dashed var(--border)', borderRadius: 16, padding: 14,
-    display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4,
-  },
-  comingSoonLabel: {
-    fontFamily: 'var(--font-mono)', fontSize: 10.5, textTransform: 'uppercase',
-    letterSpacing: 0.4, color: 'var(--focus-teal)', alignSelf: 'flex-start',
-    border: '1px solid var(--focus-teal)', borderRadius: 999, padding: '3px 10px',
-  },
-  comingSoonGrid: { display: 'flex', gap: 18 },
-  comingSoonTile: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: 0.75 },
-  comingSoonText: { fontSize: 11.5, color: 'var(--ink-muted)' },
 }

@@ -348,3 +348,47 @@ alter table water_logs enable row level security;
 drop policy if exists "own rows only" on water_logs;
 create policy "own rows only" on water_logs
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- Módulo: grupos de gimnasio (Change Request #6) — perfiles, grupos
+-- (máx. 4 integrantes, unión por código), y check-in diario con foto.
+-- Los hábitos siguen siendo personales; esto es solo progreso de gym.
+-- Ver supabase/migrations/2026-11-16-gym-groups.sql (incluye el trigger
+-- de perfiles y el bucket de Storage, que no caben bien en un `create
+-- table` plano).
+-- ============================================================
+
+create table if not exists profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  display_name text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists gym_groups (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null default upper(substr(md5(random()::text), 1, 6)),
+  name text not null,
+  created_by uuid references auth.users(id) on delete set null default auth.uid(),
+  max_members int not null default 4,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists gym_group_members (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references gym_groups(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  joined_at timestamptz not null default now(),
+  unique (group_id, user_id)
+);
+
+create table if not exists gym_checkins (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  checkin_date date not null default current_date,
+  photo_url text,
+  drank_water boolean not null default false,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists gym_checkins_user_date_idx on gym_checkins(user_id, checkin_date);
