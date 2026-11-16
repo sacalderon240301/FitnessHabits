@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Dumbbell, ListChecks, CalendarClock, Gauge, Droplet, Users, Scale, ChevronRight, Check, Trophy } from 'lucide-react'
+import { Dumbbell, ListChecks, CalendarClock, Gauge, Droplet, Users, Scale, ChevronRight, ChevronLeft, Check, Trophy } from 'lucide-react'
 import { useExerciseLogs } from '../hooks/useExerciseLogs'
 import { useGoodHabitsList } from '../hooks/useGoodHabitsList'
 import { useAllGoodHabitEvents } from '../hooks/useAllGoodHabitEvents'
@@ -8,16 +8,19 @@ import { useWaterLog, DAILY_GOAL } from '../hooks/useWaterLog'
 import { useGymGroups } from '../hooks/useGymGroups'
 import { useGroupChallenges } from '../hooks/useGroupChallenges'
 import { supabase, isDemoMode } from '../lib/supabase'
-import { todayIso, toDayKey } from '../lib/date'
+import { todayIso, toDayKey, addDays } from '../lib/date'
 
-const TODAY_LABEL = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
+function dateLabel(dateKey) {
+  const label = new Date(dateKey + 'T00:00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
 
 export default function DashboardScreen({ onNavigate }) {
   const { logs, loading: loadingLogs } = useExerciseLogs()
   const { habits, loading: loadingHabits } = useGoodHabitsList()
   const { events, loading: loadingEvents } = useAllGoodHabitEvents()
-  const { latest: latestWeight, loading: loadingWeight, logWeight } = useBodyWeight()
-  const { todayGlasses, streak: waterStreak, loading: loadingWater } = useWaterLog()
+  const { logs: weightLogs, loading: loadingWeight, logWeight } = useBodyWeight()
+  const { logs: waterLogs, streak: waterStreak, loading: loadingWater } = useWaterLog()
   const { groups, loading: loadingGroups } = useGymGroups()
   const firstGroup = groups[0]
   const { challenges, progress, loading: loadingChallenges } = useGroupChallenges(firstGroup?.id)
@@ -28,40 +31,49 @@ export default function DashboardScreen({ onNavigate }) {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data?.user?.id ?? null))
   }, [])
 
+  const [selectedDate, setSelectedDate] = useState(todayIso())
+  const isToday = selectedDate === todayIso()
+
   const [editingWeight, setEditingWeight] = useState(false)
   const [weightInput, setWeightInput] = useState('')
 
-  const today = todayIso()
-  const exercisesToday = loadingLogs ? null : logs.filter((l) => l.session_date === today).length
-  const habitsDoneToday = loadingHabits || loadingEvents
+  const exercisesOnDate = loadingLogs ? null : logs.filter((l) => l.session_date === selectedDate).length
+  const habitsDoneOnDate = loadingHabits || loadingEvents
     ? null
-    : habits.filter((h) => events.some((e) => e.habit_id === h.id && toDayKey(e.occurred_at) === today)).length
+    : habits.filter((h) => events.some((e) => e.habit_id === h.id && toDayKey(e.occurred_at) === selectedDate)).length
   const habitsTotal = habits.length
+  const weightOnDate = loadingWeight ? undefined : weightLogs.find((l) => l.logged_date === selectedDate) ?? null
+  const glassesOnDate = loadingWater ? null : waterLogs.find((l) => l.logged_date === selectedDate)?.glasses ?? 0
 
   const openWeightEditor = () => {
-    setWeightInput(latestWeight ? String(latestWeight.weight_kg) : '')
+    setWeightInput(weightOnDate ? String(weightOnDate.weight_kg) : '')
     setEditingWeight(true)
   }
 
   const saveWeight = () => {
     const value = parseFloat(weightInput.replace(',', '.'))
-    if (!Number.isNaN(value) && value > 0) logWeight(value)
+    if (!Number.isNaN(value) && value > 0) logWeight(value, selectedDate)
     setEditingWeight(false)
-  }
-
-  const weightAgeLabel = (log) => {
-    if (!log) return null
-    const daysAgo = Math.round((new Date(today) - new Date(log.logged_date)) / 86_400_000)
-    if (daysAgo <= 0) return 'hoy'
-    if (daysAgo === 1) return 'ayer'
-    return `hace ${daysAgo} días`
   }
 
   return (
     <div style={styles.wrap}>
       <div style={styles.header}>
-        <span style={styles.date}>{capitalize(TODAY_LABEL)}</span>
-        <h1 style={styles.greeting}>Hoy</h1>
+        <div style={styles.dateNav}>
+          <button onClick={() => setSelectedDate((d) => addDays(d, -1))} style={styles.dateNavBtn} aria-label="Día anterior">
+            <ChevronLeft size={18} />
+          </button>
+          <span style={styles.date}>{dateLabel(selectedDate)}</span>
+          <button onClick={() => setSelectedDate((d) => addDays(d, 1))} style={styles.dateNavBtn} aria-label="Día siguiente">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+        <div style={styles.greetingRow}>
+          <h1 style={styles.greeting}>{isToday ? 'Hoy' : 'Viendo este día'}</h1>
+          {!isToday && (
+            <button onClick={() => setSelectedDate(todayIso())} style={styles.todayBtn}>Volver a hoy</button>
+          )}
+        </div>
       </div>
 
       <div style={styles.scroll}>
@@ -71,9 +83,9 @@ export default function DashboardScreen({ onNavigate }) {
           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
             <span style={styles.ctaTitle}>Entrenar</span>
             <span style={styles.ctaSubtitle}>
-              {exercisesToday === null ? 'Cargando...' : exercisesToday > 0
-                ? `${exercisesToday} ejercicio${exercisesToday === 1 ? '' : 's'} registrado${exercisesToday === 1 ? '' : 's'} hoy`
-                : 'Nada registrado todavía hoy'}
+              {exercisesOnDate === null ? 'Cargando...' : exercisesOnDate > 0
+                ? `${exercisesOnDate} ejercicio${exercisesOnDate === 1 ? '' : 's'} registrado${exercisesOnDate === 1 ? '' : 's'}${isToday ? ' hoy' : ' ese día'}`
+                : `Nada registrado ${isToday ? 'todavía hoy' : 'ese día'}`}
             </span>
           </div>
           <ChevronRight size={18} color="var(--ink-muted)" />
@@ -85,11 +97,11 @@ export default function DashboardScreen({ onNavigate }) {
           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
             <span style={styles.cardTitle}>Hábitos</span>
             <span style={styles.cardSubtitle}>
-              {habitsDoneToday === null
+              {habitsDoneOnDate === null
                 ? 'Cargando...'
                 : habitsTotal === 0
                   ? 'Todavía no tienes hábitos buenos creados'
-                  : `${habitsDoneToday} de ${habitsTotal} cumplidos hoy`}
+                  : `${habitsDoneOnDate} de ${habitsTotal} cumplidos${isToday ? ' hoy' : ' ese día'}`}
             </span>
           </div>
           <ChevronRight size={18} color="var(--ink-muted)" />
@@ -102,11 +114,11 @@ export default function DashboardScreen({ onNavigate }) {
             <span style={styles.cardTitle}>Peso</span>
             {!editingWeight ? (
               <span style={styles.cardSubtitle}>
-                {loadingWeight
+                {weightOnDate === undefined
                   ? 'Cargando...'
-                  : latestWeight
-                    ? `${latestWeight.weight_kg} kg · ${weightAgeLabel(latestWeight)}`
-                    : 'Sin registrar todavía'}
+                  : weightOnDate
+                    ? `${weightOnDate.weight_kg} kg`
+                    : `Sin registrar ${isToday ? 'todavía' : 'ese día'}`}
               </span>
             ) : (
               <div style={styles.weightInputRow}>
@@ -138,9 +150,11 @@ export default function DashboardScreen({ onNavigate }) {
           <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
             <span style={styles.cardTitle}>Agua</span>
             <span style={styles.cardSubtitle}>
-              {loadingWater
+              {glassesOnDate === null
                 ? 'Cargando...'
-                : `${todayGlasses} / ${DAILY_GOAL} vasos hoy · racha de ${waterStreak} día${waterStreak === 1 ? '' : 's'}`}
+                : isToday
+                  ? `${glassesOnDate} / ${DAILY_GOAL} vasos hoy · racha de ${waterStreak} día${waterStreak === 1 ? '' : 's'}`
+                  : `${glassesOnDate} / ${DAILY_GOAL} vasos ese día`}
             </span>
           </div>
           <ChevronRight size={18} color="var(--ink-muted)" />
@@ -199,15 +213,21 @@ export default function DashboardScreen({ onNavigate }) {
   )
 }
 
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
 const styles = {
   wrap: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
-  header: { padding: '22px 20px 14px', display: 'flex', flexDirection: 'column', gap: 2 },
-  date: { fontSize: 13, color: 'var(--ink-muted)' },
+  header: { padding: '18px 20px 14px', display: 'flex', flexDirection: 'column', gap: 6 },
+  dateNav: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  dateNavBtn: {
+    width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)',
+    color: 'var(--ink-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+  },
+  date: { fontSize: 13, color: 'var(--ink-muted)', textAlign: 'center', minWidth: 150 },
+  greetingRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   greeting: { fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, margin: 0 },
+  todayBtn: {
+    border: '1px solid var(--thread-gold)', color: 'var(--thread-gold)', background: 'var(--thread-gold-soft)',
+    borderRadius: 999, padding: '6px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+  },
   scroll: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: 12 },
   ctaCard: {
     display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',

@@ -1,27 +1,8 @@
 import { useState } from 'react'
-import { Camera, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { muscleGroups, exerciseLocations } from '../../data/exerciseCatalog'
-import { supabase, isDemoMode } from '../../lib/supabase'
-
-async function uploadExercisePhoto(file) {
-  if (isDemoMode) {
-    // En modo demo no hay Storage real — guardamos la foto como data URL
-    // en localStorage (junto con el resto del ejercicio), así sobrevive
-    // a un refresh aunque no sea lo que se sube en producción.
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = () => resolve(null)
-      reader.readAsDataURL(file)
-    })
-  }
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-  const path = `custom/${Date.now()}-${safeName}`
-  const { error } = await supabase.storage.from('exercise-photos').upload(path, file)
-  if (error) return null
-  const { data } = supabase.storage.from('exercise-photos').getPublicUrl(path)
-  return data?.publicUrl ?? null
-}
+import { uploadPhoto } from '../../lib/uploadPhoto'
+import PhotoPickerButtons from '../PhotoPickerButtons'
 
 export default function CreateExerciseModal({ onClose, onSubmit }) {
   const [name, setName] = useState('')
@@ -49,7 +30,7 @@ export default function CreateExerciseModal({ onClose, onSubmit }) {
   const handleSubmit = async () => {
     if (!name.trim() || uploading) return
     setUploading(true)
-    const photo_url = photoFile ? await uploadExercisePhoto(photoFile) : null
+    const photo_url = photoFile ? await uploadPhoto('exercise-photos', photoFile) : null
     setUploading(false)
     onSubmit({
       name: name.trim(),
@@ -131,11 +112,7 @@ export default function CreateExerciseModal({ onClose, onSubmit }) {
             </button>
           </div>
         ) : (
-          <label style={styles.photoAddBtn}>
-            <Camera size={16} />
-            Agregar foto
-            <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
-          </label>
+          <PhotoPickerButtons onPick={handlePhotoChange} />
         )}
 
         <div style={styles.actions}>
@@ -164,11 +141,6 @@ const styles = {
   toggleBtnActive: { borderColor: 'var(--thread-gold)', color: 'var(--thread-gold)', background: 'var(--thread-gold-soft)' },
   checkboxRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', margin: '12px 0 4px', cursor: 'pointer' },
   textarea: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', color: 'var(--ink)', fontSize: 14, fontFamily: 'inherit', resize: 'none' },
-  photoAddBtn: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-    padding: '11px', borderRadius: 10, border: '1px dashed var(--border)',
-    background: 'transparent', color: 'var(--ink-muted)', fontSize: 13, cursor: 'pointer',
-  },
   photoPreviewWrap: { position: 'relative', width: 96, height: 96 },
   photoPreview: { width: 96, height: 96, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--border)' },
   photoRemoveBtn: {

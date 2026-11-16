@@ -434,3 +434,18 @@ create table if not exists gym_challenge_progress (
   updated_at timestamptz not null default now(),
   primary key (challenge_id, user_id)
 );
+
+-- ============================================================
+-- Módulo: foto en cualquier ejercicio (overlay aparte del catálogo
+-- estático). Ver supabase/migrations/2026-11-16-exercise-photo-overrides.sql
+-- ============================================================
+
+create table if not exists exercise_photos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade default auth.uid(),
+  exercise_id text not null,
+  photo_url text not null,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists exercise_photos_user_exercise_idx on exercise_photos(user_id, exercise_id);

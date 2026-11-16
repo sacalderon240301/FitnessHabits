@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Home } from 'lucide-react'
 import { useKpiData } from '../hooks/useKpiData'
-import { computeICF, computeNetHabitScore, computeFrictionAnalysis, computeActiveDaysThisWeek, computePlanCompliance, computeSedentaryStats } from '../lib/kpiStats'
+import { computeICF, computeNetHabitScore, computeFrictionAnalysis, computeActiveDaysThisWeek, computePlanCompliance, computeSedentaryStats, computeTrainingFrequency } from '../lib/kpiStats'
 import RadarChart from '../components/kpis/RadarChart'
 import NetHabitScoreChart from '../components/kpis/NetHabitScoreChart'
 import FrictionInsight from '../components/kpis/FrictionInsight'
@@ -16,6 +16,7 @@ export default function KpisScreen({ onGoHome }) {
   const netScore = useMemo(() => computeNetHabitScore(data), [data])
   const friction = useMemo(() => computeFrictionAnalysis(data), [data])
   const activeDays = useMemo(() => computeActiveDaysThisWeek(data), [data])
+  const trainingFreq = useMemo(() => computeTrainingFrequency(data), [data])
   const compliance = useMemo(() => computePlanCompliance(data), [data])
 
   return (
@@ -35,6 +36,21 @@ export default function KpisScreen({ onGoHome }) {
           <p style={{ color: 'var(--ink-muted)' }}>Cargando...</p>
         ) : (
           <>
+            <div style={styles.statGrid}>
+              <div style={styles.statTile}>
+                <span style={styles.statTileValue}>{trainingFreq.daysThisWeek}</span>
+                <span style={styles.statTileLabel}>días de ejercicio esta semana</span>
+              </div>
+              <div style={styles.statTile}>
+                <span style={styles.statTileValue}>{trainingFreq.weeklyAverage}</span>
+                <span style={styles.statTileLabel}>promedio semanal (últ. 4 sem.)</span>
+              </div>
+              <div style={styles.statTile}>
+                <span style={styles.statTileValue}>{trainingFreq.daysThisMonth}</span>
+                <span style={styles.statTileLabel}>días de ejercicio este mes</span>
+              </div>
+            </div>
+
             <div style={styles.statChip}>
               <span style={styles.statChipValue}>{activeDays}/7</span>
               <span style={styles.statChipLabel}>días activos esta semana (ejercicio o hábito bueno)</span>
@@ -89,6 +105,13 @@ const styles = {
     color: 'var(--focus-teal)', background: 'var(--focus-teal-soft)',
     border: '1px solid var(--focus-teal)', borderRadius: 999, padding: '3px 10px', marginBottom: 14,
   },
+  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8, marginBottom: 12 },
+  statTile: {
+    background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
+    padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 4,
+  },
+  statTileValue: { fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--thread-gold)' },
+  statTileLabel: { fontSize: 10.5, color: 'var(--ink-muted)', lineHeight: 1.3 },
   statChip: {
     display: 'flex', alignItems: 'baseline', gap: 8, background: 'var(--surface)',
     border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', marginBottom: 16,

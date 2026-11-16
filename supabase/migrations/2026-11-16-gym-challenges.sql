@@ -50,6 +50,44 @@ create table if not exists gym_challenge_progress (
 );
 
 -- ============================================================
+-- Funciones `security definer` extra (is_group_member y
+-- shares_group_with ya existen desde 2026-11-16-gym-groups.sql —
+-- correrlas de nuevo con `create or replace` no hace daño). Sin esto,
+-- las políticas de abajo volverían a caer en el mismo error de
+-- "infinite recursion" que las de gym_group_members.
+-- ============================================================
+
+create or replace function is_group_member(p_group_id uuid, p_user_id uuid)
+returns boolean
+language sql security definer stable set search_path = public
+as $$
+  select exists (
+    select 1 from gym_group_members
+    where group_id = p_group_id and user_id = p_user_id
+  );
+$$;
+
+create or replace function is_member_of_challenge_group(p_challenge_id uuid)
+returns boolean
+language sql security definer stable set search_path = public
+as $$
+  select exists (
+    select 1 from gym_challenges c
+    where c.id = p_challenge_id and is_group_member(c.group_id, auth.uid())
+  );
+$$;
+
+create or replace function is_member_of_equivalence_group(p_equivalence_id uuid)
+returns boolean
+language sql security definer stable set search_path = public
+as $$
+  select exists (
+    select 1 from gym_equivalences e
+    where e.id = p_equivalence_id and is_member_of_challenge_group(e.challenge_id)
+  );
+$$;
+
+-- ============================================================
 -- Políticas: todo lo de arriba es visible/editable solo por integrantes
 -- del grupo dueño del reto (vía el challenge_id → group_id).
 -- ============================================================
@@ -58,15 +96,11 @@ alter table gym_challenges enable row level security;
 
 drop policy if exists "groupmates view challenges" on gym_challenges;
 create policy "groupmates view challenges" on gym_challenges
-  for select using (
-    exists (select 1 from gym_group_members gm where gm.group_id = gym_challenges.group_id and gm.user_id = auth.uid())
-  );
+  for select using (is_group_member(group_id, auth.uid()));
 
 drop policy if exists "groupmates create challenges" on gym_challenges;
 create policy "groupmates create challenges" on gym_challenges
-  for insert with check (
-    exists (select 1 from gym_group_members gm where gm.group_id = gym_challenges.group_id and gm.user_id = auth.uid())
-  );
+  for insert with check (is_group_member(group_id, auth.uid()));
 
 drop policy if exists "creator manages challenge" on gym_challenges;
 create policy "creator manages challenge" on gym_challenges
@@ -76,36 +110,17 @@ alter table gym_equivalences enable row level security;
 
 drop policy if exists "groupmates view equivalences" on gym_equivalences;
 create policy "groupmates view equivalences" on gym_equivalences
-  for select using (
-    exists (
-      select 1 from gym_challenges c
-      join gym_group_members gm on gm.group_id = c.group_id
-      where c.id = gym_equivalences.challenge_id and gm.user_id = auth.uid()
-    )
-  );
+  for select using (is_member_of_challenge_group(challenge_id));
 
 drop policy if exists "groupmates propose equivalences" on gym_equivalences;
 create policy "groupmates propose equivalences" on gym_equivalences
-  for insert with check (
-    exists (
-      select 1 from gym_challenges c
-      join gym_group_members gm on gm.group_id = c.group_id
-      where c.id = gym_equivalences.challenge_id and gm.user_id = auth.uid()
-    )
-  );
+  for insert with check (is_member_of_challenge_group(challenge_id));
 
 alter table gym_equivalence_votes enable row level security;
 
 drop policy if exists "groupmates view votes" on gym_equivalence_votes;
 create policy "groupmates view votes" on gym_equivalence_votes
-  for select using (
-    exists (
-      select 1 from gym_equivalences e
-      join gym_challenges c on c.id = e.challenge_id
-      join gym_group_members gm on gm.group_id = c.group_id
-      where e.id = gym_equivalence_votes.equivalence_id and gm.user_id = auth.uid()
-    )
-  );
+  for select using (is_member_of_equivalence_group(equivalence_id));
 
 drop policy if exists "users vote themselves" on gym_equivalence_votes;
 create policy "users vote themselves" on gym_equivalence_votes
@@ -119,13 +134,7 @@ alter table gym_challenge_progress enable row level security;
 
 drop policy if exists "groupmates view progress" on gym_challenge_progress;
 create policy "groupmates view progress" on gym_challenge_progress
-  for select using (
-    exists (
-      select 1 from gym_challenges c
-      join gym_group_members gm on gm.group_id = c.group_id
-      where c.id = gym_challenge_progress.challenge_id and gm.user_id = auth.uid()
-    )
-  );
+  for select using (is_member_of_challenge_group(challenge_id));
 
 drop policy if exists "users manage own progress" on gym_challenge_progress;
 create policy "users manage own progress" on gym_challenge_progress

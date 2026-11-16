@@ -4,15 +4,25 @@ import { muscleGroupLabel, locationLabel } from '../data/exerciseCatalog'
 import { buildExerciseProgress } from '../lib/exerciseStats'
 import ExerciseProgressChart from '../components/exercises/ExerciseProgressChart'
 import LogSetsModal from '../components/exercises/LogSetsModal'
+import PhotoPickerButtons from '../components/PhotoPickerButtons'
 
 function formatDate(dateKey) {
   const d = new Date(dateKey + 'T00:00:00')
   return d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-export default function ExerciseDetailScreen({ exercise, logs, onBack, onAddLog, onUpdateLog, onDeleteLog }) {
+export default function ExerciseDetailScreen({ exercise, logs, onBack, onAddLog, onUpdateLog, onDeleteLog, onSetPhoto }) {
   const [logging, setLogging] = useState(false)
   const [editingLog, setEditingLog] = useState(null)
+  const [savingPhoto, setSavingPhoto] = useState(false)
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !onSetPhoto) return
+    setSavingPhoto(true)
+    await onSetPhoto(exercise.id, file)
+    setSavingPhoto(false)
+  }
 
   const progress = useMemo(() => buildExerciseProgress(logs, exercise.id), [logs, exercise.id])
 
@@ -36,6 +46,15 @@ export default function ExerciseDetailScreen({ exercise, logs, onBack, onAddLog,
 
       <div style={{ padding: '4px 20px 90px', flex: 1, overflowY: 'auto' }}>
         {exercise.photoUrl && <img src={exercise.photoUrl} alt="" style={styles.photo} />}
+        {onSetPhoto && (
+          <div style={{ margin: '8px 0 4px' }}>
+            {savingPhoto ? (
+              <p style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>Guardando foto...</p>
+            ) : (
+              <PhotoPickerButtons onPick={handlePhotoChange} />
+            )}
+          </div>
+        )}
         {exercise.tip && <p style={styles.tip}>{exercise.tip}</p>}
 
         <button style={styles.logBtn} onClick={() => setLogging(true)}>

@@ -220,3 +220,30 @@ export function computeActiveDaysThisWeek({ troteSessions, exerciseLogs, goodEve
   ])
   return active.size
 }
+
+/**
+ * Frecuencia de entrenamiento (trote + ejercicios de casa/parque/gimnasio,
+ * SIN mezclar hábitos — a diferencia de computeActiveDaysThisWeek) — para
+ * responder directo "¿cuántos días voy al gym o hago ejercicio?".
+ */
+export function computeTrainingFrequency({ troteSessions, exerciseLogs }) {
+  const activeDaysInWindow = (windowSet) => {
+    const set = new Set()
+    for (const item of troteSessions) {
+      const key = dayKeyOf(item.session_date)
+      if (windowSet.has(key)) set.add(key)
+    }
+    for (const item of exerciseLogs) {
+      const key = dayKeyOf(item.session_date)
+      if (windowSet.has(key)) set.add(key)
+    }
+    return set
+  }
+
+  const daysThisWeek = activeDaysInWindow(new Set(lastNDays(7))).size
+  const daysThisMonth = activeDaysInWindow(new Set(lastNDays(30))).size
+  const daysLast4Weeks = activeDaysInWindow(new Set(lastNDays(28))).size
+  const weeklyAverage = Math.round((daysLast4Weeks / 4) * 10) / 10
+
+  return { daysThisWeek, daysThisMonth, weeklyAverage }
+}

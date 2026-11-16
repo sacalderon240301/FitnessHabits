@@ -102,6 +102,19 @@ export default function RoutineSessionModal({ routine, catalog, existingLogs = [
     setPicking(false)
   }
 
+  const addExtraExercises = (exs) => {
+    const newOnes = exs.filter((ex) => !exerciseIds.includes(ex.id))
+    if (newOnes.length > 0) {
+      setExtraIds((prev) => [...prev, ...newOnes.map((ex) => ex.id)])
+      setRowsByExercise((prev) => {
+        const next = { ...prev }
+        for (const ex of newOnes) next[ex.id] = rowsFromSets(null)
+        return next
+      })
+    }
+    setPicking(false)
+  }
+
   const handleCreateExercise = (payload) => {
     if (!onCreateExercise) return
     onCreateExercise(payload).then((created) => {
@@ -139,6 +152,8 @@ export default function RoutineSessionModal({ routine, catalog, existingLogs = [
             catalog={availableCatalog}
             onSelect={addExtraExercise}
             onCreateNew={onCreateExercise ? () => setCreatingExercise(true) : undefined}
+            multiSelect
+            onAddMultiple={addExtraExercises}
           />
           <button onClick={() => setPicking(false)} style={styles.cancelBtn}>Volver</button>
         </div>

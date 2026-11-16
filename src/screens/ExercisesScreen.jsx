@@ -19,7 +19,7 @@ const TABS = [
 
 export default function ExercisesScreen() {
   const [tab, setTab] = useState('catalogo')
-  const { catalog, loading: l1, addExercise, isDemoMode } = useExerciseCatalog()
+  const { catalog, loading: l1, addExercise, setExercisePhoto, isDemoMode } = useExerciseCatalog()
   const { logs, loading: l2, addLog, updateLog, deleteLog } = useExerciseLogs()
   const { routines, loading: l3, addRoutine, updateRoutine, deleteRoutine } = useExerciseRoutines()
 
@@ -40,6 +40,7 @@ export default function ExercisesScreen() {
         onAddLog={addLog}
         onUpdateLog={updateLog}
         onDeleteLog={deleteLog}
+        onSetPhoto={setExercisePhoto}
       />
     )
   }

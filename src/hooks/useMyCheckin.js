@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase, isDemoMode } from '../lib/supabase'
+import { uploadPhoto } from '../lib/uploadPhoto'
 import { todayIso } from '../lib/date'
 
 const DEMO_KEY = 'habit-app-demo-my-checkin'
@@ -11,23 +12,6 @@ function loadDemoCheckin() {
 
 function saveDemoCheckin(checkin) {
   localStorage.setItem(DEMO_KEY, JSON.stringify(checkin))
-}
-
-async function uploadCheckinPhoto(file) {
-  if (isDemoMode) {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = () => resolve(null)
-      reader.readAsDataURL(file)
-    })
-  }
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-  const path = `${Date.now()}-${safeName}`
-  const { error } = await supabase.storage.from('checkin-photos').upload(path, file)
-  if (error) return null
-  const { data } = supabase.storage.from('checkin-photos').getPublicUrl(path)
-  return data?.publicUrl ?? null
 }
 
 /** El check-in de HOY del usuario actual: foto + si tomó agua. */
@@ -51,7 +35,7 @@ export function useMyCheckin() {
 
   const checkIn = useCallback(async ({ photoFile, drankWater, note }) => {
     setSaving(true)
-    const photo_url = photoFile ? await uploadCheckinPhoto(photoFile) : (checkin?.photo_url ?? null)
+    const photo_url = photoFile ? await uploadPhoto('checkin-photos', photoFile) : (checkin?.photo_url ?? null)
     if (isDemoMode) {
       const updated = { checkin_date: today, photo_url, drank_water: drankWater, note: note ?? null }
       saveDemoCheckin(updated)

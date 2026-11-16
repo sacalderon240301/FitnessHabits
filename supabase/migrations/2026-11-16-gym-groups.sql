@@ -53,6 +53,35 @@ create table if not exists gym_checkins (
 create unique index if not exists gym_checkins_user_date_idx on gym_checkins(user_id, checkin_date);
 
 -- ============================================================
+-- Funciones `security definer`: una política de RLS que consulta la
+-- MISMA tabla que protege (o una tabla que a su vez consulta esa misma
+-- tabla) hace que Postgres entre en bucle ("infinite recursion detected
+-- in policy..."). Estas funciones leen gym_group_members con permiso
+-- para saltarse esa propia política, cortando el ciclo.
+-- ============================================================
+
+create or replace function is_group_member(p_group_id uuid, p_user_id uuid)
+returns boolean
+language sql security definer stable set search_path = public
+as $$
+  select exists (
+    select 1 from gym_group_members
+    where group_id = p_group_id and user_id = p_user_id
+  );
+$$;
+
+create or replace function shares_group_with(p_other_user uuid)
+returns boolean
+language sql security definer stable set search_path = public
+as $$
+  select exists (
+    select 1 from gym_group_members gm1
+    join gym_group_members gm2 on gm1.group_id = gm2.group_id
+    where gm1.user_id = auth.uid() and gm2.user_id = p_other_user
+  );
+$$;
+
+-- ============================================================
 -- Perfiles: políticas + trigger que llena el nombre al crear la cuenta.
 -- ============================================================
 
@@ -60,14 +89,7 @@ alter table profiles enable row level security;
 
 drop policy if exists "profiles viewable by self and groupmates" on profiles;
 create policy "profiles viewable by self and groupmates" on profiles
-  for select using (
-    user_id = auth.uid()
-    or exists (
-      select 1 from gym_group_members gm1
-      join gym_group_members gm2 on gm1.group_id = gm2.group_id
-      where gm1.user_id = auth.uid() and gm2.user_id = profiles.user_id
-    )
-  );
+  for select using (user_id = auth.uid() or shares_group_with(user_id));
 
 drop policy if exists "users update own profile" on profiles;
 create policy "users update own profile" on profiles
@@ -127,12 +149,7 @@ alter table gym_group_members enable row level security;
 
 drop policy if exists "groupmates can view members" on gym_group_members;
 create policy "groupmates can view members" on gym_group_members
-  for select using (
-    exists (
-      select 1 from gym_group_members gm
-      where gm.group_id = gym_group_members.group_id and gm.user_id = auth.uid()
-    )
-  );
+  for select using (is_group_member(group_id, auth.uid()));
 
 drop policy if exists "users join groups themselves" on gym_group_members;
 create policy "users join groups themselves" on gym_group_members
@@ -175,13 +192,7 @@ create policy "own checkins" on gym_checkins
 
 drop policy if exists "groupmates can view checkins" on gym_checkins;
 create policy "groupmates can view checkins" on gym_checkins
-  for select using (
-    exists (
-      select 1 from gym_group_members gm1
-      join gym_group_members gm2 on gm1.group_id = gm2.group_id
-      where gm1.user_id = auth.uid() and gm2.user_id = gym_checkins.user_id
-    )
-  );
+  for select using (shares_group_with(user_id));
 
 -- Bucket público de Storage para las fotos de check-in (igual criterio
 -- que exercise-photos: no es información sensible).

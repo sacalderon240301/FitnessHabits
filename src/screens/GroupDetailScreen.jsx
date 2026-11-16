@@ -5,6 +5,7 @@ import { useMyCheckin } from '../hooks/useMyCheckin'
 import { useGymGroups } from '../hooks/useGymGroups'
 import { todayIso, addDays } from '../lib/date'
 import ChallengesSection from '../components/groups/ChallengesSection'
+import PhotoPickerButtons from '../components/PhotoPickerButtons'
 
 export default function GroupDetailScreen({ groupId, groups, onBack }) {
   const group = groups.find((g) => g.id === groupId)
@@ -137,10 +138,7 @@ export default function GroupDetailScreen({ groupId, groups, onBack }) {
                       <button onClick={() => { setPhotoFile(null); setPhotoPreview(null) }} style={styles.photoRemoveBtn}><X size={13} /></button>
                     </div>
                   ) : (
-                    <label style={styles.photoAddBtn}>
-                      <Camera size={16} /> Subir foto de hoy
-                      <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
-                    </label>
+                    <PhotoPickerButtons onPick={handlePhotoChange} />
                   )}
                   <label style={styles.checkboxRow}>
                     <input type="checkbox" checked={drankWater} onChange={(e) => setDrankWater(e.target.checked)} />
@@ -217,11 +215,6 @@ const styles = {
   checkinWaterTag: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--focus-teal)', marginTop: 4 },
   updateLink: { background: 'transparent', border: 'none', color: 'var(--thread-gold)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0 },
   checkinForm: { display: 'flex', flexDirection: 'column', gap: 12 },
-  photoAddBtn: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-    padding: '12px', borderRadius: 10, border: '1px dashed var(--border)',
-    background: 'transparent', color: 'var(--ink-muted)', fontSize: 13, cursor: 'pointer',
-  },
   photoPreviewWrap: { position: 'relative', width: 96, height: 96 },
   photoPreview: { width: 96, height: 96, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--border)' },
   photoRemoveBtn: {
