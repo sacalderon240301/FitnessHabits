@@ -122,6 +122,19 @@ export default function RoutineSessionModal({ routine, catalog, existingLogs = [
         <div style={styles.sheet} onClick={(e) => e.stopPropagation()}>
           <div style={styles.handle} />
           <h2 style={styles.title}>Agregar ejercicio</h2>
+          {exercises.length > 0 && (
+            <div style={styles.alreadyAddedWrap}>
+              <span style={styles.alreadyAddedLabel}>Ya tienes en esta sesión</span>
+              <div style={styles.alreadyAddedRow}>
+                {exercises.map((ex) => (
+                  <span key={ex.id} style={styles.alreadyAddedChip}>
+                    <Check size={11} />
+                    {ex.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <ExerciseCatalogBrowser
             catalog={availableCatalog}
             onSelect={addExtraExercise}
@@ -207,6 +220,14 @@ const styles = {
   sheet: { width: '100%', maxWidth: 480, background: 'var(--surface-raised)', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: '10px 20px 24px', boxShadow: '0 -8px 30px rgba(0,0,0,0.4)', maxHeight: '88vh', overflowY: 'auto' },
   handle: { width: 36, height: 4, borderRadius: 2, background: 'var(--thread-dim)', margin: '4px auto 16px' },
   title: { fontFamily: 'var(--font-display)', fontSize: 19, margin: '0 0 12px', fontWeight: 500, color: 'var(--ink)' },
+  alreadyAddedWrap: { marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 6 },
+  alreadyAddedLabel: { fontFamily: 'var(--font-mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--ink-muted)' },
+  alreadyAddedRow: { display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 },
+  alreadyAddedChip: {
+    display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, whiteSpace: 'nowrap',
+    border: '1px solid var(--focus-teal)', color: 'var(--focus-teal)', background: 'var(--focus-teal-soft)',
+    borderRadius: 999, padding: '5px 10px', fontSize: 12,
+  },
   topRow: { display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
   dateInput: { flex: 1, minWidth: 130, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 10px', color: 'var(--ink)', fontSize: 13 },
   locationChips: { display: 'flex', gap: 6 },
